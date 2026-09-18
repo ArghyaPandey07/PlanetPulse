@@ -1,32 +1,12 @@
-import React from 'react';
-import { TrendingUp, Target, Zap, ArrowUpRight } from 'lucide-react';
-import { Card, CardHeader, Badge } from '../components/ui';
+import React, { useEffect, useState } from 'react';
+import { TrendingUp, Target, Zap, Edit2 } from 'lucide-react';
+import { Card, CardHeader, Badge, Button, Modal, Input, ErrorState } from '../components/ui';
 import { PageHeader } from '../components/layout';
 import { CO2_FACTORS, CATEGORY_COLORS } from '../constants';
+import { getDashboard, getWeekly, updateTarget } from '../lib/api';
+import type { DashboardData, WeeklyData } from '../lib/api';
 import type { ActivityType } from '../types';
 import './Dashboard.css';
-
-// ── Mock data for layout development ────────────────────────────
-// TODO: Replace with real domain logic integration
-const MOCK_WEEK_RANGE = 'Sep 15 – Sep 21, 2026';
-const MOCK_TOTAL_CO2 = 23.4;
-const MOCK_TARGET = 35;
-const MOCK_PROGRESS = (MOCK_TOTAL_CO2 / MOCK_TARGET) * 100;
-
-const MOCK_BREAKDOWN: { type: ActivityType; totalKg: number }[] = [
-  { type: 'car', totalKg: 8.0 },
-  { type: 'flight', totalKg: 6.25 },
-  { type: 'electricity', totalKg: 4.8 },
-  { type: 'nonveg_meal', totalKg: 2.0 },
-  { type: 'veg_meal', totalKg: 1.5 },
-  { type: 'bus', totalKg: 0.85 },
-];
-
-const MOCK_RECENT = [
-  { id: '1', type: 'car' as ActivityType, quantity: 40, unit: 'km', co2Kg: 8.0, date: '2026-09-18' },
-  { id: '2', type: 'flight' as ActivityType, quantity: 25, unit: 'km', co2Kg: 6.25, date: '2026-09-17' },
-  { id: '3', type: 'electricity' as ActivityType, quantity: 6, unit: 'kWh', co2Kg: 4.8, date: '2026-09-17' },
-];
 
 function formatCO2(kg: number): string {
   if (kg >= 1000) return `${(kg / 1000).toFixed(1)}t`;
@@ -34,13 +14,77 @@ function formatCO2(kg: number): string {
 }
 
 export const Dashboard: React.FC = () => {
-  const isOnTrack = MOCK_TOTAL_CO2 <= MOCK_TARGET;
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Target modal state
+  const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
+  const [targetInput, setTargetInput] = useState('');
+  const [targetError, setTargetError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    const [dashRes, weekRes] = await Promise.all([getDashboard(), getWeekly()]);
+    
+    if (!dashRes.success || !weekRes.success) {
+      setError(dashRes.errors?.[0]?.message || weekRes.errors?.[0]?.message || 'Failed to load dashboard data');
+    } else {
+      setDashboardData(dashRes.data!);
+      setWeeklyData(weekRes.data!);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleUpdateTarget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTargetError(null);
+    const val = targetInput ? parseFloat(targetInput) : null;
+    
+    const res = await updateTarget(val);
+    if (res.success) {
+      setIsTargetModalOpen(false);
+      fetchData(); // Refresh data
+    } else {
+      setTargetError(res.errors?.[0]?.message || 'Failed to update target');
+    }
+  };
+
+  if (loading) {
+    return <div className="pp-dashboard"><p style={{ padding: 'var(--space-6)' }}>Loading dashboard...</p></div>;
+  }
+
+  if (error || !dashboardData || !weeklyData) {
+    return (
+      <div className="pp-dashboard">
+        <ErrorState title="Error" message={error || 'Could not load data'} onRetry={fetchData} />
+      </div>
+    );
+  }
+
+  const { totalCo2Kg, categoryBreakdown, weekRange } = dashboardData;
+  const { targetKg, progressPercent, exceeded, nudgeMessage } = weeklyData;
+
+  const isOnTrack = !exceeded;
+  const progress = progressPercent ?? 0;
+  
+  // Format breakdown for sorting
+  const breakdownList = Object.entries(categoryBreakdown).map(([type, totalKg]) => ({
+    type: type as ActivityType,
+    totalKg
+  })).sort((a, b) => b.totalKg - a.totalKg);
 
   return (
     <div className="pp-dashboard">
       <PageHeader
         title="Dashboard"
-        description={`Week of ${MOCK_WEEK_RANGE}`}
+        description={`Week of ${weekRange.start} – ${weekRange.end}`}
       />
 
       {/* ── KPI Row ──────────────────────────────── */}
@@ -51,7 +95,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <div className="pp-kpi__content">
             <p className="pp-kpi__label">Total Emissions</p>
-            <p className="pp-kpi__value">{formatCO2(MOCK_TOTAL_CO2)}</p>
+            <p className="pp-kpi__value">{formatCO2(totalCo2Kg)}</p>
             <p className="pp-kpi__sub">CO₂ this week</p>
           </div>
         </Card>
@@ -60,12 +104,22 @@ export const Dashboard: React.FC = () => {
           <div className="pp-kpi__icon pp-kpi__icon--target">
             <Target size={20} />
           </div>
-          <div className="pp-kpi__content">
-            <p className="pp-kpi__label">Weekly Target</p>
-            <p className="pp-kpi__value">{formatCO2(MOCK_TARGET)}</p>
-            <Badge variant={isOnTrack ? 'success' : 'warning'}>
-              {isOnTrack ? 'On track' : 'Exceeded'}
-            </Badge>
+          <div className="pp-kpi__content" style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p className="pp-kpi__label">Weekly Target</p>
+                <p className="pp-kpi__value">{targetKg === null ? 'Not set' : formatCO2(targetKg)}</p>
+              </div>
+              <Button variant="ghost" size="sm" icon={<Edit2 size={14} />} onClick={() => {
+                setTargetInput(targetKg !== null ? String(targetKg) : '');
+                setIsTargetModalOpen(true);
+              }} />
+            </div>
+            {targetKg !== null && (
+              <Badge variant={isOnTrack ? 'success' : 'warning'}>
+                {isOnTrack ? 'On track' : 'Exceeded'}
+              </Badge>
+            )}
           </div>
         </Card>
 
@@ -76,12 +130,13 @@ export const Dashboard: React.FC = () => {
           <div className="pp-kpi__content">
             <p className="pp-kpi__label">Remaining</p>
             <p className="pp-kpi__value">
-              {formatCO2(Math.max(0, MOCK_TARGET - MOCK_TOTAL_CO2))}
+              {targetKg === null ? '—' : formatCO2(Math.max(0, targetKg - totalCo2Kg))}
             </p>
             <p className="pp-kpi__sub">
-              {isOnTrack
-                ? `${(100 - MOCK_PROGRESS).toFixed(0)}% of budget left`
-                : 'Target exceeded — keep going!'}
+              {targetKg === null 
+                ? 'Set a target first'
+                : (isOnTrack ? `${(100 - progress).toFixed(0)}% of budget left` : 'Target exceeded — keep going!')
+              }
             </p>
           </div>
         </Card>
@@ -93,30 +148,38 @@ export const Dashboard: React.FC = () => {
         <Card className="pp-dashboard__progress-card">
           <CardHeader
             title="Weekly Progress"
-            subtitle={`${MOCK_WEEK_RANGE}`}
+            subtitle={`${weekRange.start} – ${weekRange.end}`}
           />
-          <div className="pp-progress">
-            <div className="pp-progress__bar">
-              <div
-                className={`pp-progress__fill ${MOCK_PROGRESS > 100 ? 'pp-progress__fill--exceeded' : ''}`}
-                style={{ width: `${Math.min(MOCK_PROGRESS, 100)}%` }}
-              />
-              {MOCK_PROGRESS <= 100 && (
-                <div
-                  className="pp-progress__marker"
-                  style={{ left: `${MOCK_PROGRESS}%` }}
-                />
+          {targetKg === null ? (
+             <div className="pp-progress__encouragement">
+               <p>Set a weekly target to track your progress and reduce your footprint!</p>
+             </div>
+          ) : (
+            <>
+              <div className="pp-progress">
+                <div className="pp-progress__bar">
+                  <div
+                    className={`pp-progress__fill ${exceeded ? 'pp-progress__fill--exceeded' : ''}`}
+                    style={{ width: `${Math.min(progress, 100)}%` }}
+                  />
+                  {progress <= 100 && (
+                    <div
+                      className="pp-progress__marker"
+                      style={{ left: `${progress}%` }}
+                    />
+                  )}
+                </div>
+                <div className="pp-progress__labels">
+                  <span>{formatCO2(totalCo2Kg)} used</span>
+                  <span>{formatCO2(targetKg)} target</span>
+                </div>
+              </div>
+              {nudgeMessage && (
+                <div className="pp-progress__encouragement">
+                  <p>{nudgeMessage}</p>
+                </div>
               )}
-            </div>
-            <div className="pp-progress__labels">
-              <span>{formatCO2(MOCK_TOTAL_CO2)} used</span>
-              <span>{formatCO2(MOCK_TARGET)} target</span>
-            </div>
-          </div>
-          {!isOnTrack && (
-            <div className="pp-progress__encouragement">
-              <p>You've gone a bit over your target — that's okay! Every small change helps. Consider taking the bus or having a veggie meal tomorrow. 🌱</p>
-            </div>
+            </>
           )}
         </Card>
 
@@ -124,65 +187,58 @@ export const Dashboard: React.FC = () => {
         <Card className="pp-dashboard__breakdown-card">
           <CardHeader title="By Category" subtitle="This week's breakdown" />
           <div className="pp-breakdown">
-            {MOCK_BREAKDOWN.map(({ type, totalKg }) => {
-              const pct = MOCK_TOTAL_CO2 > 0 ? (totalKg / MOCK_TOTAL_CO2) * 100 : 0;
-              const info = CO2_FACTORS[type];
-              return (
-                <div key={type} className="pp-breakdown__row">
-                  <div className="pp-breakdown__label">
-                    <span
-                      className="pp-breakdown__dot"
-                      style={{ background: CATEGORY_COLORS[type] }}
-                    />
-                    <span className="pp-breakdown__name">{info.label}</span>
+            {breakdownList.length === 0 ? (
+              <p style={{ color: 'var(--color-text-tertiary)', fontSize: 'var(--text-sm)' }}>No activities logged this week.</p>
+            ) : (
+              breakdownList.map(({ type, totalKg }) => {
+                const pct = totalCo2Kg > 0 ? (totalKg / totalCo2Kg) * 100 : 0;
+                const info = CO2_FACTORS[type];
+                return (
+                  <div key={type} className="pp-breakdown__row">
+                    <div className="pp-breakdown__label">
+                      <span
+                        className="pp-breakdown__dot"
+                        style={{ background: CATEGORY_COLORS[type] }}
+                      />
+                      <span className="pp-breakdown__name">{info?.label || type}</span>
+                    </div>
+                    <div className="pp-breakdown__bar-wrapper">
+                      <div
+                        className="pp-breakdown__bar-fill"
+                        style={{
+                          width: `${pct}%`,
+                          background: CATEGORY_COLORS[type],
+                        }}
+                      />
+                    </div>
+                    <span className="pp-breakdown__value">{formatCO2(totalKg)}</span>
+                    <span className="pp-breakdown__pct">{pct.toFixed(0)}%</span>
                   </div>
-                  <div className="pp-breakdown__bar-wrapper">
-                    <div
-                      className="pp-breakdown__bar-fill"
-                      style={{
-                        width: `${pct}%`,
-                        background: CATEGORY_COLORS[type],
-                      }}
-                    />
-                  </div>
-                  <span className="pp-breakdown__value">{formatCO2(totalKg)}</span>
-                  <span className="pp-breakdown__pct">{pct.toFixed(0)}%</span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card className="pp-dashboard__recent-card" padding="none">
-          <div style={{ padding: 'var(--space-6) var(--space-6) 0' }}>
-            <CardHeader title="Recent Activity" subtitle="Latest entries" />
-          </div>
-          <div className="pp-recent">
-            {MOCK_RECENT.map((entry) => {
-              const info = CO2_FACTORS[entry.type];
-              return (
-                <div key={entry.id} className="pp-recent__row">
-                  <span
-                    className="pp-recent__dot"
-                    style={{ background: CATEGORY_COLORS[entry.type] }}
-                  />
-                  <div className="pp-recent__info">
-                    <span className="pp-recent__type">{info.label}</span>
-                    <span className="pp-recent__detail">
-                      {entry.quantity} {info.unit} · {entry.date}
-                    </span>
-                  </div>
-                  <div className="pp-recent__co2">
-                    <span>{formatCO2(entry.co2Kg)}</span>
-                    <ArrowUpRight size={14} className="pp-recent__arrow" />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </Card>
       </div>
+
+      <Modal isOpen={isTargetModalOpen} onClose={() => setIsTargetModalOpen(false)} title="Set Weekly Target">
+        <form onSubmit={handleUpdateTarget} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <Input
+            label="Weekly Target (kg CO₂)"
+            type="number"
+            min="0"
+            step="any"
+            value={targetInput}
+            onChange={(e) => setTargetInput(e.target.value)}
+            placeholder="Leave blank to clear target"
+            error={targetError || undefined}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+            <Button variant="ghost" type="button" onClick={() => setIsTargetModalOpen(false)}>Cancel</Button>
+            <Button type="submit">Save Target</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
