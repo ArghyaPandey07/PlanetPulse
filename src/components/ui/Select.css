@@ -1,0 +1,57 @@
+.pp-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pp-select-group__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.pp-select-group__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pp-select {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 2.25rem 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  appearance: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.pp-select:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.pp-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.pp-select-group__chevron {
+  position: absolute;
+  right: var(--space-3);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.pp-select-group--error .pp-select {
+  border-color: var(--color-error);
+}
+
+.pp-select-group__error {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+}

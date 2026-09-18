@@ -1,0 +1,74 @@
+.pp-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.pp-input-group__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.pp-input-group__wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pp-input-group__icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.pp-input {
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.pp-input--with-icon {
+  padding-left: 2.5rem;
+}
+
+.pp-input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.pp-input:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.pp-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.pp-input-group--error .pp-input {
+  border-color: var(--color-error);
+}
+
+.pp-input-group--error .pp-input:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.pp-input-group__error {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+}
+
+.pp-input-group__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}

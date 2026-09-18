@@ -1,0 +1,42 @@
+.pp-badge {
+  display: inline-flex;
+  align-items: center;
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.pp-badge--sm {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-2);
+}
+
+.pp-badge--md {
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+}
+
+.pp-badge--default {
+  background: var(--color-border-light);
+  color: var(--color-text-secondary);
+}
+
+.pp-badge--success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.pp-badge--warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.pp-badge--error {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.pp-badge--info {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}

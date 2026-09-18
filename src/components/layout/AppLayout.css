@@ -1,0 +1,22 @@
+.pp-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pp-layout__main {
+  flex: 1;
+  padding: var(--space-6) var(--space-4);
+}
+
+.pp-layout__content {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .pp-layout__main {
+    padding: var(--space-8) var(--space-6);
+  }
+}
