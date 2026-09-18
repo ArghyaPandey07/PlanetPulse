@@ -87,7 +87,7 @@ The backend includes unit and integration tests covering:
 
 ## 🏆 Hackathon
 
-**Hackathon ID:** `[ADD OFFICIAL HACKATHON ID HERE]`
+**Hackathon ID:** AZIS-KN2Y2V
 
 Track: Real-World AI Products — PlanetPulse
 
