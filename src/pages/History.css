@@ -108,9 +108,4 @@
   .pp-history__filter-row {
     grid-template-columns: 1fr;
   }
-
-  .pp-history__table th:nth-child(5),
-  .pp-history__table td:nth-child(5) {
-    display: none;
-  }
 }

@@ -9,8 +9,6 @@ export interface Activity {
   unit: string;
   co2Kg: number;
   date: string; // ISO date string
-  createdAt: string; // ISO datetime string
-  note?: string;
 }
 
 export interface WeeklyTarget {
