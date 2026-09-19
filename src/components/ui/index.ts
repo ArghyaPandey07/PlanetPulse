@@ -6,3 +6,9 @@ export { Modal } from './Modal';
 export { EmptyState } from './EmptyState';
 export { ErrorState } from './ErrorState';
 export { Badge } from './Badge';
+
+export * from './CategoryIcon';
+
+export * from './ProgressRing';
+
+export * from './AnimatedNumber';

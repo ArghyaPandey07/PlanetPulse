@@ -4,8 +4,8 @@
   justify-content: center;
   gap: var(--space-2);
   font-weight: var(--font-medium);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
+  border-radius: var(--radius-lg); /* Refined rounded rectangle, not pill */
+  transition: all var(--transition-base);
   white-space: nowrap;
   cursor: pointer;
   border: 1px solid transparent;
@@ -15,6 +15,25 @@
 .pp-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.pp-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pp-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .pp-btn:active:not(:disabled) {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: none;
+  }
 }
 
 /* Sizes */
