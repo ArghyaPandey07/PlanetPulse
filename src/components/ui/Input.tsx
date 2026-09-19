@@ -1,4 +1,5 @@
 import React, { useId } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './Input.css';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -33,16 +34,35 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>((
           {...props}
         />
       </div>
-      {error && (
-        <p id={errorId} className="pp-input-group__error" role="alert">
-          {error}
-        </p>
-      )}
-      {!error && hint && (
-        <p id={hintId} className="pp-input-group__hint">
-          {hint}
-        </p>
-      )}
+      <AnimatePresence mode="popLayout">
+        {error && (
+          <motion.p
+            key="error"
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 4 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.2 }}
+            id={errorId}
+            className="pp-input-group__error"
+            role="alert"
+          >
+            {error}
+          </motion.p>
+        )}
+        {!error && hint && (
+          <motion.p
+            key="hint"
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 4 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.2 }}
+            id={hintId}
+            className="pp-input-group__hint"
+          >
+            {hint}
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 });

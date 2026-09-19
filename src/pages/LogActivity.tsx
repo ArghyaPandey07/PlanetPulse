@@ -1,16 +1,30 @@
 import React, { useState } from 'react';
-import { PlusCircle, CheckCircle } from 'lucide-react';
-import { Card, CardHeader, Input, Select, Button, ErrorState } from '../components/ui';
+import { PlusCircle, CheckCircle, Leaf, Car, Bus, Plane, Zap, Sprout, Beef } from 'lucide-react';
+import { Card, CardHeader, Input, Button, ErrorState, CategoryIcon } from '../components/ui';
 import { PageHeader } from '../components/layout';
 import { CO2_FACTORS } from '../constants';
 import { logActivity } from '../lib/api';
 import type { ActivityType } from '../types';
+import { motion, AnimatePresence } from 'framer-motion';
 import './LogActivity.css';
 
-const ACTIVITY_OPTIONS = Object.entries(CO2_FACTORS).map(([value, info]) => ({
-  value,
-  label: `${info.label} (${info.factor} kg/${info.unit})`,
-}));
+
+
+const CATEGORY_ICON_MAP: Record<string, React.FC<{ size?: number }>> = {
+  car: Car,
+  bus: Bus,
+  flight: Plane,
+  electricity: Zap,
+  veg_meal: Sprout,
+  nonveg_meal: Beef,
+};
+
+// Group categories for the visual selector
+const CATEGORY_GROUPS: { group: string; types: ActivityType[] }[] = [
+  { group: 'Transport', types: ['car', 'bus', 'flight'] },
+  { group: 'Food', types: ['veg_meal', 'nonveg_meal'] },
+  { group: 'Energy', types: ['electricity'] },
+];
 
 export const LogActivity: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>('');
@@ -26,6 +40,7 @@ export const LogActivity: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent duplicate submissions
     setLoading(true);
     setErrorMap({});
     setGeneralError(null);
@@ -62,42 +77,107 @@ export const LogActivity: React.FC = () => {
     <div className="pp-log">
       <PageHeader
         title="Log Activity"
+        context="Activity Log / New Entry"
         description="Record your carbon-producing activities"
       />
 
-      <div className="pp-log__grid">
-        <Card className="pp-log__form-card">
-          <CardHeader title="New Entry" subtitle="Add an activity to your log" />
+      <motion.div 
+        className="pp-log__grid"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+        }}
+      >
+        {/* ── Left Column: Form ──────────────────── */}
+        <motion.div variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } }}>
+          <Card className="pp-log__form-card">
+            <CardHeader title="New Entry" subtitle="Select a category and enter the details" />
           
+          <AnimatePresence mode="wait">
           {generalError && (
-            <div style={{ marginBottom: 'var(--space-4)' }}>
+            <motion.div 
+              key="error"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ marginBottom: 'var(--space-4)' }}
+            >
               <ErrorState title="Error logging activity" message={generalError} />
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
+          <AnimatePresence mode="wait">
           {successCo2 !== null ? (
-            <div className="pp-log__success" style={{ textAlign: 'center', padding: 'var(--space-8) 0' }}>
-              <CheckCircle size={48} color="var(--color-success)" style={{ margin: '0 auto var(--space-4)' }} />
-              <h3 style={{ fontSize: 'var(--text-lg)', fontWeight: 'var(--font-semibold)', color: 'var(--color-text-primary)' }}>Activity Logged!</h3>
-              <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--space-2)' }}>
+            <motion.div 
+              key="success"
+              className="pp-log__success"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            >
+              <div className="pp-log__success-icon">
+                <CheckCircle size={48} />
+              </div>
+              <h3 className="pp-log__success-title">Activity Logged!</h3>
+              <p className="pp-log__success-message">
                 This activity contributed <strong>{successCo2.toFixed(2)} kg CO₂</strong> to your footprint.
               </p>
-              <Button style={{ marginTop: 'var(--space-6)' }} onClick={() => setSuccessCo2(null)}>
+              <Button 
+                className="pp-log__success-btn"
+                onClick={() => setSuccessCo2(null)}
+                icon={<PlusCircle size={18} />}
+              >
                 Log Another Activity
               </Button>
-            </div>
+            </motion.div>
           ) : (
-            <form onSubmit={handleSubmit} className="pp-log__form">
-              <Select
-                label="Activity Type"
-                options={ACTIVITY_OPTIONS}
-                placeholder="Select an activity…"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                error={errorMap.type}
-                required
-              />
+            <motion.form 
+              key="form"
+              onSubmit={handleSubmit} 
+              className="pp-log__form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {/* Category Selector */}
+              <div className="pp-log__categories">
+                <label className="pp-log__field-label">Activity Category</label>
+                <div className="pp-log__category-groups">
+                  {CATEGORY_GROUPS.map(({ group, types }) => (
+                    <div key={group} className="pp-log__category-group">
+                      <span className="pp-log__group-label">{group}</span>
+                      <div className="pp-log__group-items">
+                        {types.map((type) => {
+                          const info = CO2_FACTORS[type];
+                          const Icon = CATEGORY_ICON_MAP[type] || Leaf;
+                          const isSelected = selectedType === type;
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              className={`pp-log__category-btn ${isSelected ? 'pp-log__category-btn--active' : ''}`}
+                              onClick={() => setSelectedType(type)}
+                              aria-pressed={isSelected}
+                            >
+                              <Icon size={20} />
+                              <span>{info.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {errorMap.type && (
+                  <p className="pp-log__field-error">{errorMap.type}</p>
+                )}
+              </div>
 
+              {/* Quantity Input */}
               <Input
                 label={`Quantity${selectedInfo ? ` (${selectedInfo.unit})` : ''}`}
                 type="number"
@@ -112,6 +192,7 @@ export const LogActivity: React.FC = () => {
                 hint={selectedInfo ? `${selectedInfo.factor} kg CO₂ per ${selectedInfo.unit}` : undefined}
               />
 
+              {/* Date Input */}
               <Input
                 label="Date"
                 type="date"
@@ -121,15 +202,26 @@ export const LogActivity: React.FC = () => {
                 required
               />
 
+              {/* Estimate Preview */}
+              <AnimatePresence>
               {estimatedCO2 > 0 && !errorMap.quantity && (
-                <div className="pp-log__estimate">
-                  <span className="pp-log__estimate-label">Estimated CO₂</span>
-                  <span className="pp-log__estimate-value">
-                    {estimatedCO2.toFixed(2)} kg
-                  </span>
-                </div>
+                <motion.div 
+                  className="pp-log__estimate"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <div className="pp-log__estimate-inner">
+                    <span className="pp-log__estimate-label">Estimated CO₂</span>
+                    <span className="pp-log__estimate-value">
+                      {estimatedCO2.toFixed(2)} kg
+                    </span>
+                  </div>
+                </motion.div>
               )}
+              </AnimatePresence>
 
+              {/* Submit */}
               <Button
                 type="submit"
                 size="lg"
@@ -138,27 +230,51 @@ export const LogActivity: React.FC = () => {
                 icon={!loading && <PlusCircle size={18} />}
                 disabled={!selectedType || !quantity || loading}
               >
-                Log Activity
+                {loading ? 'Logging...' : 'Log Activity'}
               </Button>
-            </form>
+            </motion.form>
           )}
-        </Card>
+          </AnimatePresence>
+          </Card>
+        </motion.div>
 
-        {/* Quick Reference */}
-        <Card className="pp-log__reference-card">
-          <CardHeader title="CO₂ Factors" subtitle="Reference guide" />
-          <div className="pp-log__factors">
-            {Object.entries(CO2_FACTORS).map(([key, info]) => (
-              <div key={key} className="pp-log__factor-row">
-                <span className="pp-log__factor-name">{info.label}</span>
-                <span className="pp-log__factor-value">
-                  {info.factor} kg/{info.unit}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+        {/* ── Right Column: Context ─────────────── */}
+        <motion.div 
+          className="pp-log__sidebar"
+          variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } }}
+        >
+          {/* CO₂ Factors Reference */}
+          <Card className="pp-log__reference-card">
+            <CardHeader title="CO₂ Factors" subtitle="Reference guide" />
+            <div className="pp-log__factors">
+              {Object.entries(CO2_FACTORS).map(([key, info]) => (
+                <div 
+                  key={key} 
+                  className={`pp-log__factor-row ${selectedType === key ? 'pp-log__factor-row--active' : ''}`}
+                >
+                  <div className="pp-log__factor-left">
+                    <CategoryIcon type={key as ActivityType} size={16} />
+                    <span className="pp-log__factor-name">{info.label}</span>
+                  </div>
+                  <span className="pp-log__factor-value">
+                    {info.factor} kg/{info.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Environmental Tip */}
+          <Card className="pp-log__tip-card">
+            <div className="pp-log__tip-content">
+              <Leaf className="pp-log__tip-icon" size={24} />
+              <p className="pp-log__tip-text">
+                Tracking your carbon footprint is the first step toward reducing it. Small changes in daily habits can make a meaningful difference.
+              </p>
+            </div>
+          </Card>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

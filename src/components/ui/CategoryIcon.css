@@ -1,0 +1,40 @@
+.pp-cat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.pp-cat-icon--car {
+  color: var(--color-cat-car);
+  background: rgba(26, 60, 52, 0.08);
+}
+
+.pp-cat-icon--bus {
+  color: var(--color-cat-bus);
+  background: rgba(98, 114, 133, 0.08);
+}
+
+.pp-cat-icon--flight {
+  color: var(--color-cat-flight);
+  background: rgba(217, 160, 91, 0.1);
+}
+
+.pp-cat-icon--electricity {
+  color: var(--color-cat-electricity);
+  background: rgba(143, 128, 154, 0.1);
+}
+
+.pp-cat-icon--veg_meal {
+  color: var(--color-cat-veg);
+  background: rgba(139, 168, 156, 0.1);
+}
+
+.pp-cat-icon--nonveg_meal {
+  color: var(--color-cat-nonveg);
+  background: rgba(181, 132, 99, 0.1);
+}

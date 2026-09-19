@@ -1,4 +1,5 @@
 import React, { useId } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import './Select.css';
 
@@ -12,10 +13,11 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
   options: SelectOption[];
   placeholder?: string;
   error?: string;
+  icon?: React.ReactNode;
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>((
-  { label, options, placeholder, error, className = '', id: externalId, ...props },
+  { label, options, placeholder, error, className = '', icon, id: externalId, ...props },
   ref
 ) => {
   const generatedId = useId();
@@ -27,7 +29,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>((
       <label htmlFor={id} className="pp-select-group__label">
         {label}
       </label>
-      <div className="pp-select-group__wrapper">
+      <div className={`pp-select-group__wrapper ${icon ? 'pp-select-group__wrapper--with-icon' : ''}`}>
+        {icon && <div className="pp-select-group__icon">{icon}</div>}
         <select
           ref={ref}
           id={id}
@@ -49,11 +52,22 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>((
         </select>
         <ChevronDown size={16} className="pp-select-group__chevron" aria-hidden="true" />
       </div>
-      {error && (
-        <p id={errorId} className="pp-select-group__error" role="alert">
-          {error}
-        </p>
-      )}
+      <AnimatePresence mode="popLayout">
+        {error && (
+          <motion.p
+            key="error"
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 4 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.2 }}
+            id={errorId}
+            className="pp-select-group__error"
+            role="alert"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 });
